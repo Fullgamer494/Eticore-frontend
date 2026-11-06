@@ -1,0 +1,22 @@
+import type { CatalogFilters, Difficulty } from './api'
+import type { LearningRoute } from '../routes/api'
+import type { Course } from '../../shared/types/course'
+import { CourseCard } from '../../shared/ui/CourseCard'
+
+export function Catalog({ query, setQuery, filters, setFilters, courses: visibleCourses, loading, error, onRetry, nextCursor, loadingMore, onLoadMore, routes, isAuthenticated, onOpen }: { query: string; setQuery: (value: string) => void; filters: Pick<CatalogFilters, 'tipo' | 'dificultad' | 'tema_id' | 'ruta_id' | 'avance'>; setFilters: (value: Partial<Pick<CatalogFilters, 'tipo' | 'dificultad' | 'tema_id' | 'ruta_id' | 'avance'>>) => void; courses: Course[]; loading: boolean; error: string | null; onRetry: () => void; nextCursor: string | null; loadingMore: boolean; onLoadMore: () => Promise<void>; routes: LearningRoute[]; isAuthenticated: boolean; onOpen: (course: Course) => void }) {
+  return <div className="page-content">
+    <section className="page-intro"><p className="eyebrow">CATÁLOGO DE APRENDIZAJE</p><h1>Explora una idea nueva</h1><p>Casos y actividades para pensar la tecnología desde distintas perspectivas.</p></section>
+    <label className="search-box"><span aria-hidden="true">⌕</span><input aria-label="Buscar actividades" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busca un tema, una actividad..." /><kbd aria-hidden="true">⌘ K</kbd></label>
+    <div className="filter-row" aria-label="Filtrar actividades">{([{ label: 'Todas', value: undefined }, { label: 'Aprende', value: 'aprende' }, { label: 'NormaMatch', value: 'normamatch' }, { label: 'CasoTech', value: 'casotech' }] as const).map((item) => <button key={item.label} type="button" aria-pressed={filters.tipo === item.value} className={`filter-chip ${filters.tipo === item.value ? 'selected' : ''}`} onClick={() => setFilters({ tipo: item.value })}>{item.label}</button>)}</div>
+    <div className="catalog-filter-selects"><label>Dificultad<select value={filters.dificultad ?? ''} onChange={(event) => setFilters({ dificultad: event.target.value ? event.target.value as Difficulty : undefined })}><option value="">Todas</option><option value="basico">Básico</option><option value="intermedio">Intermedio</option><option value="especializado">Especializado</option></select></label>
+      <label>ID de tema<input type="number" min="1" value={filters.tema_id ?? ''} onChange={(event) => setFilters({ tema_id: event.target.value ? Number(event.target.value) : undefined })} placeholder="Todos" /></label>
+      <label>Ruta<select value={filters.ruta_id ?? ''} onChange={(event) => setFilters({ ruta_id: event.target.value ? Number(event.target.value) : undefined })}><option value="">Todas</option>{routes.map((route) => <option key={route.id} value={route.id}>{route.nombre}</option>)}</select></label>
+      <label>Avance<select disabled={!isAuthenticated} value={filters.avance ?? ''} onChange={(event) => setFilters({ avance: event.target.value ? event.target.value as 'pendiente' | 'completada' : undefined })}><option value="">Cualquiera</option><option value="pendiente">Pendiente</option><option value="completada">Completada</option></select></label></div>
+    <div className="catalog-meta"><strong>{loading ? 'Cargando catálogo…' : `${visibleCourses.length} actividades`}</strong><span>Fuente: API de Eticore</span></div>
+    {loading && <div className="empty-state" role="status"><span>…</span><h2>Cargando actividades</h2><p>Estamos consultando el catálogo de Eticore.</p></div>}
+    {!loading && error && <div className="empty-state api-error" role="alert"><span>!</span><h2>No se pudo cargar el catálogo</h2><p>{error}</p><button className="button button-outline" onClick={onRetry}>Intentar de nuevo</button></div>}
+    {!loading && !error && <div className="course-grid catalog-grid">{visibleCourses.map((course) => <CourseCard key={course.id} course={course} onOpen={() => onOpen(course)} />)}</div>}
+    {!loading && !error && nextCursor && <div className="catalog-more"><button className="button button-outline" disabled={loadingMore} onClick={() => void onLoadMore()}>{loadingMore ? 'Cargando…' : 'Cargar más actividades'}</button></div>}
+    {!loading && !error && visibleCourses.length === 0 && <div className="empty-state"><span>⌕</span><h2>El catálogo no devolvió actividades</h2><p>Prueba otra búsqueda o cambia el filtro.</p></div>}
+  </div>
+}
