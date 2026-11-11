@@ -1,0 +1,15 @@
+.catalog-filter-selects { @apply [display:grid]; @apply [grid-template-columns:repeat(4,_minmax(0,_1fr))]; @apply [gap:10px]; @apply [margin:12px_0_22px]; }
+.catalog-filter-selects label, .profile-edit-form label, .security-panel label { @apply [display:grid]; @apply [gap:6px]; @apply [color:var(--color-muted)]; @apply [font-size:10px]; }
+.catalog-filter-selects select, .profile-edit-form input, .profile-edit-form select, .security-panel input { @apply [min-height:38px]; @apply [border:1px_solid_var(--color-border)]; @apply [border-radius:7px]; @apply [padding:8px_10px]; @apply [color:var(--color-ink)]; @apply [background:var(--color-surface)]; @apply [font-size:11px]; }
+.management-tabs { @apply [display:flex]; @apply [gap:8px]; @apply [flex-wrap:wrap]; @apply [margin-bottom:18px]; }
+.management-grid { @apply [display:grid]; @apply [grid-template-columns:repeat(2,_minmax(0,_1fr))]; @apply [gap:14px]; @apply [align-items:start]; }
+.management-panel { @apply [min-width:0]; @apply [padding:18px]; @apply [border:1px_solid_var(--color-border)]; @apply [border-radius:12px]; @apply [background:var(--color-surface)]; }
+.management-panel h2 { @apply [margin-bottom:7px]; @apply [font-size:16px]; }
+.management-panel > p { @apply [color:var(--color-muted)]; @apply [font-size:11px]; @apply [line-height:1.55]; }
+.management-panel form { @apply [display:grid]; @apply [gap:11px]; @apply [margin-top:12px]; }
+.management-panel label { @apply [display:grid]; @apply [gap:6px]; @apply [color:var(--color-muted)]; @apply [font-size:10px]; }
+.management-panel input, .management-panel select, .management-panel textarea { @apply [width:100%]; @apply [min-height:37px]; @apply [border:1px_solid_var(--color-border)]; @apply [border-radius:7px]; @apply [padding:8px_10px]; @apply [color:var(--color-ink)]; @apply [background:var(--color-surface)]; @apply [font-size:11px]; }
+.management-panel textarea { @apply [resize:vertical]; @apply [line-height:1.5]; @apply [font-family:ui-monospace,_SFMono-Regular,_Menlo,_monospace]; }
+.operation-result { @apply [margin:12px_0_18px]; @apply [padding:12px]; @apply [border:1px_solid_var(--color-border)]; @apply [border-radius:9px]; @apply [background:var(--color-surface)]; }
+.operation-result summary { @apply [cursor:pointer]; @apply [color:var(--color-ink)]; @apply [font-size:11px]; @apply [font-weight:700]; }
+.operation-result pre { @apply [max-height:420px]; @apply [overflow:auto]; @apply [white-space:pre-wrap]; @apply [overflow-wrap:anywhere]; @apply [color:var(--color-muted)]; @apply [font-size:10px]; }

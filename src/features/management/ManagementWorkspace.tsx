@@ -1,0 +1,139 @@
+import { useState } from 'react'
+import {
+  addGroupMember, changeUserRole, createEditorialDraft, createEditorialUnit, createGroup,
+  createPrivacyRequest, deactivateEditorialUnit, deactivateGroup, getGroupReport,
+  getLegalDocument, getMyLegalEvents, listAdminAccounts, listAudit, listGroupMembers,
+  listGroups, publishEditorialDraft, publishLegalDocument, registerLegalEvent,
+  removeGroupMember, reviewEditorialDraft, setAdminAccountActive, updateEditorialDraft,
+  type LegalDocumentType, type PrivacyEventType, type RoleCode,
+} from './api'
+
+type Tab = 'accounts' | 'groups' | 'reports' | 'editorial'
+const roles: RoleCode[] = ['APRENDIZ', 'ADMIN_CONTENIDO', 'ADMIN_TECNICO']
+const documentTypes: LegalDocumentType[] = ['aviso_privacidad', 'terminos', 'consentimiento']
+const eventTypes: PrivacyEventType[] = ['aviso_presentado', 'terminos_aceptados', 'consentimiento_otorgado', 'consentimiento_retirado', 'consentimiento_rechazado']
+
+function show(value: unknown): string { return JSON.stringify(value, null, 2) }
+function fieldNumber(value: FormDataEntryValue | null): number { return Number(value) }
+function optionalNumber(value: FormDataEntryValue | null): number | undefined { return value ? Number(value) : undefined }
+
+export function ManagementWorkspace({ roles: userRoles }: { roles: RoleCode[] }) {
+  const technical = userRoles.includes('ADMIN_TECNICO')
+  const editorial = userRoles.includes('ADMIN_CONTENIDO')
+  const manager = technical || editorial
+  const availableTabs: Tab[] = [ ...(technical ? ['accounts' as const] : []), ...(manager ? ['groups' as const, 'reports' as const] : []), ...(editorial ? ['editorial' as const] : []) ]
+  const [tab, setTab] = useState<Tab>(availableTabs[0] ?? 'accounts')
+  const [result, setResult] = useState<unknown>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function run(action: () => Promise<unknown>) {
+    setBusy(true); setError(null)
+    try { setResult(await action()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'La operación no pudo completarse.') }
+    finally { setBusy(false) }
+  }
+
+  return <div className="page-content management-page">
+    <section className="page-intro"><p className="eyebrow">OPERACIÓN Y CUMPLIMIENTO</p><h1>Herramientas de Eticore</h1><p>Las operaciones disponibles dependen de tus roles. El servidor valida cada permiso.</p></section>
+    <nav className="management-tabs" aria-label="Herramientas de administración">{availableTabs.map((item) => <button type="button" key={item} aria-pressed={tab === item} className={`filter-chip ${tab === item ? 'selected' : ''}`} onClick={() => setTab(item)}>{({ accounts: 'Cuentas y auditoría', groups: 'Grupos', reports: 'Reportes', editorial: 'Editorial' })[item]}</button>)}</nav>
+    {error && <div className="error-banner" role="alert">{error}</div>}
+    {result !== null && <details className="operation-result" open><summary>Respuesta de la API</summary><pre>{show(result)}</pre></details>}
+    {tab === 'accounts' && technical && <AccountsPanel busy={busy} run={run} />}
+    {tab === 'groups' && <GroupsPanel busy={busy} technical={technical} run={run} />}
+    {tab === 'reports' && <ReportsPanel busy={busy} run={run} />}
+    {tab === 'editorial' && editorial && <EditorialPanel busy={busy} run={run} />}
+  </div>
+}
+
+export function LegalWorkspace({ roles: userRoles, authenticated }: { roles: RoleCode[]; authenticated: boolean }) {
+  const technical = userRoles.includes('ADMIN_TECNICO')
+  const [result, setResult] = useState<unknown>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  async function run(action: () => Promise<unknown>) {
+    setBusy(true); setError(null)
+    try { setResult(await action()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'La operación no pudo completarse.') }
+    finally { setBusy(false) }
+  }
+  return <div className="page-content public-legal-content"><section className="page-intro"><p className="eyebrow">TRANSPARENCIA Y CONTROL</p><h1>Legal y privacidad</h1><p>Consulta los documentos vigentes y administra tus eventos o solicitudes de privacidad.</p></section>
+    {error && <div className="error-banner" role="alert">{error}</div>}{result !== null && <details className="operation-result" open><summary>Respuesta de la API</summary><pre>{show(result)}</pre></details>}
+    <LegalPanel busy={busy} technical={technical} authenticated={authenticated} run={run} />
+  </div>
+}
+
+function AccountsPanel({ busy, run }: { busy: boolean; run: (action: () => Promise<unknown>) => Promise<void> }) {
+  const [cursor, setCursor] = useState('')
+  return <div className="management-grid">
+    <Panel title="Cuentas" description="Consulta cuentas por rol o estado. La proyección de la API excluye secretos y credenciales.">
+      <form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => listAdminAccounts({ activo: data.get('activo') === '' ? undefined : data.get('activo') === 'true', rol: data.get('rol') ? data.get('rol') as RoleCode : undefined, cursor: cursor || undefined, limit: 20 })) }}>
+        <label>Estado<select name="activo"><option value="">Todos</option><option value="true">Activa</option><option value="false">Inactiva</option></select></label>
+        <label>Rol<select name="rol"><option value="">Todos</option>{roles.map((role) => <option key={role}>{role}</option>)}</select></label>
+        <label>Cursor<input value={cursor} onChange={(event) => setCursor(event.target.value)} /></label>
+        <button className="button button-teal" disabled={busy}>Consultar cuentas</button>
+      </form>
+      <button className="button button-outline" disabled={busy} onClick={() => { void run(() => listAdminAccounts({ limit: 100 })) }}>Listar hasta 100</button>
+    </Panel>
+    <Panel title="Cambiar estado de cuenta" description="Desactivar revoca sesiones. La API impide dejar el sistema sin administrador técnico activo.">
+      <form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => setAdminAccountActive(fieldNumber(data.get('id')), data.get('active') === 'true')) }}>
+        <label>ID de usuario<input name="id" type="number" min="1" required /></label><label>Acción<select name="active"><option value="false">Desactivar</option><option value="true">Activar</option></select></label><button className="button button-teal" disabled={busy}>Aplicar</button>
+      </form>
+    </Panel>
+    <Panel title="Asignar o retirar rol" description="Roles disponibles según el catálogo fijo de la API.">
+      <form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => changeUserRole(fieldNumber(data.get('id')), data.get('role') as RoleCode, data.get('action') === 'assign')) }}>
+        <label>ID de usuario<input name="id" type="number" min="1" required /></label><label>Rol<select name="role">{roles.map((role) => <option key={role}>{role}</option>)}</select></label><label>Operación<select name="action"><option value="assign">Asignar</option><option value="remove">Retirar</option></select></label><button className="button button-teal" disabled={busy}>Aplicar rol</button>
+      </form>
+    </Panel>
+    <Panel title="Auditoría" description="Consulta de solo lectura en la bitácora de aplicación o base de datos.">
+      <form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => listAudit({ fuente: data.get('fuente') as string, accion: data.get('accion') as string || undefined, actor_id: optionalNumber(data.get('actor_id')), recurso_tipo: data.get('recurso_tipo') as string || undefined, resultado: data.get('resultado') as string || undefined, cursor: data.get('cursor') as string || undefined, limit: 50 })) }}>
+        <label>Fuente<select name="fuente"><option value="aplicacion">Aplicación</option><option value="bd">Base de datos</option></select></label><label>Acción/operación<input name="accion" /></label><label>ID actor<input name="actor_id" type="number" min="1" /></label><label>Tipo recurso/tabla<input name="recurso_tipo" /></label><label>Resultado<select name="resultado"><option value="">Cualquiera</option><option>exitoso</option><option>rechazado</option><option>fallido</option></select></label><label>Cursor<input name="cursor" /></label><button className="button button-teal" disabled={busy}>Consultar auditoría</button>
+      </form>
+    </Panel>
+  </div>
+}
+
+function GroupsPanel({ busy, technical, run }: { busy: boolean; technical: boolean; run: (action: () => Promise<unknown>) => Promise<void> }) {
+  return <div className="management-grid">
+    {technical && <Panel title="Crear grupo" description="Crea una cohorte académica; nombre hasta 120 caracteres y periodo hasta 64."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => createGroup({ nombre: String(data.get('nombre')), periodo: String(data.get('periodo')) })) }}><label>Nombre<input name="nombre" maxLength={120} required /></label><label>Periodo<input name="periodo" maxLength={64} required placeholder="2026-2" /></label><button className="button button-teal" disabled={busy}>Crear grupo</button></form></Panel>}
+    <Panel title="Listar grupos" description="La consulta se pagina con cursor; puedes filtrar por periodo y estado."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => listGroups({ periodo: data.get('periodo') as string || undefined, activo: data.get('activo') === '' ? undefined : data.get('activo') === 'true', limit: 50, cursor: data.get('cursor') as string || undefined })) }}><label>Periodo<input name="periodo" /></label><label>Estado<select name="activo"><option value="">Todos</option><option value="true">Activo</option><option value="false">Inactivo</option></select></label><label>Cursor<input name="cursor" /></label><button className="button button-teal" disabled={busy}>Consultar grupos</button></form></Panel>
+    {technical && <Panel title="Desactivar grupo" description="Conserva el historial de membresías y reportes."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => deactivateGroup(fieldNumber(data.get('id')))) }}><label>ID grupo<input name="id" type="number" min="1" required /></label><button className="button button-outline" disabled={busy}>Desactivar</button></form></Panel>}
+    {technical && <Panel title="Integrantes" description="Consulta intervalos activos o históricos y administra membresías."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => listGroupMembers(fieldNumber(data.get('id')), { solo_activos: data.get('activos') === 'true', limit: 50, cursor: data.get('cursor') as string || undefined })) }}><label>ID grupo<input name="id" type="number" min="1" required /></label><label>Vista<select name="activos"><option value="true">Solo activos</option><option value="false">Todos los intervalos</option></select></label><label>Cursor<input name="cursor" /></label><button className="button button-teal" disabled={busy}>Listar integrantes</button></form>
+      <form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => addGroupMember(fieldNumber(data.get('group_id')), { usuario_id: fieldNumber(data.get('user_id')), ingreso: data.get('ingreso') ? new Date(String(data.get('ingreso'))).toISOString() : undefined, salida: data.get('salida') ? new Date(String(data.get('salida'))).toISOString() : undefined })) }}><label>ID grupo<input name="group_id" type="number" min="1" required /></label><label>ID usuario<input name="user_id" type="number" min="1" required /></label><label>Ingreso<input name="ingreso" type="datetime-local" /></label><label>Salida opcional<input name="salida" type="datetime-local" /></label><button className="button button-outline" disabled={busy}>Agregar integrante</button></form>
+      <form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => removeGroupMember(fieldNumber(data.get('group_id')), fieldNumber(data.get('user_id')), data.get('salida') ? new Date(String(data.get('salida'))).toISOString() : undefined)) }}><label>ID grupo<input name="group_id" type="number" min="1" required /></label><label>ID usuario<input name="user_id" type="number" min="1" required /></label><label>Salida<input name="salida" type="datetime-local" /></label><button className="button button-outline" disabled={busy}>Retirar integrante</button></form>
+    </Panel>}
+  </div>
+}
+
+function ReportsPanel({ busy, run }: { busy: boolean; run: (action: () => Promise<unknown>) => Promise<void> }) {
+  return <Panel title="Reporte agregado por grupo" description="Periodo semiabierto [desde, hasta). Los promedios se suprimen cuando la celda tiene menos de cinco participantes."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const from = new Date(`${String(data.get('desde'))}T00:00:00.000Z`).toISOString(); const until = new Date(`${String(data.get('hasta'))}T00:00:00.000Z`).toISOString(); void run(() => getGroupReport(fieldNumber(data.get('grupo_id')), { desde: from, hasta: until, unidad_id: optionalNumber(data.get('unidad_id')), ruta_id: optionalNumber(data.get('ruta_id')) })) }}><label>ID grupo<input name="grupo_id" type="number" min="1" required /></label><label>Desde<input name="desde" type="date" required /></label><label>Hasta (exclusivo)<input name="hasta" type="date" required /></label><label>ID unidad opcional<input name="unidad_id" type="number" min="1" /></label><label>ID ruta opcional<input name="ruta_id" type="number" min="1" /></label><button className="button button-teal" disabled={busy}>Generar reporte</button></form></Panel>
+}
+
+function EditorialPanel({ busy, run }: { busy: boolean; run: (action: () => Promise<unknown>) => Promise<void> }) {
+  const [draftJson, setDraftJson] = useState('{\n  "unidad_id": 1,\n  "titulo": "Título de borrador",\n  "descripcion": "Descripción de la actividad",\n  "tema_id": 1,\n  "dificultad": "basico",\n  "contenido": {\n    "objetivo": "Objetivo de aprendizaje",\n    "secciones": [{ "id": "s1", "orden": 1, "titulo": "Sección", "cuerpo": "Contenido" }],\n    "ejemplo": "Ejemplo"\n  }\n}')
+  const [patchJson, setPatchJson] = useState('{\n  "revision_esperada": 1,\n  "titulo": "Título actualizado"\n}')
+  return <div className="management-grid">
+    <Panel title="Crear unidad" description="Crea una unidad sin publicarla; después crea una versión borrador."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => createEditorialUnit(data.get('tipo') as 'aprende' | 'normamatch' | 'casotech', data.get('sample') === 'true')) }}><label>Tipo<select name="tipo"><option value="aprende">Aprende</option><option value="normamatch">NormaMatch</option><option value="casotech">CasoTech</option></select></label><label>Muestra pública<select name="sample"><option value="false">No</option><option value="true">Sí</option></select></label><button className="button button-teal" disabled={busy}>Crear unidad</button></form></Panel>
+    <Panel title="Crear versión borrador" description="El contenido sigue el esquema v1 del tipo elegido; las fuentes deben referir IDs existentes."><form onSubmit={(event) => { event.preventDefault(); try { void run(() => createEditorialDraft(JSON.parse(draftJson) as Record<string, unknown>)) } catch { window.alert('El JSON del borrador no es válido.') } }}><label>Payload JSON<textarea rows={12} value={draftJson} onChange={(event) => setDraftJson(event.target.value)} /></label><button className="button button-teal" disabled={busy}>Crear borrador</button></form></Panel>
+    <Panel title="Editar borrador" description="Envía solo campos a cambiar e incluye revision_esperada para control optimista."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); try { void run(() => updateEditorialDraft(fieldNumber(data.get('id')), JSON.parse(patchJson) as Record<string, unknown>)) } catch { window.alert('El JSON de actualización no es válido.') } }}><label>ID versión<input name="id" type="number" min="1" required /></label><label>Payload parcial JSON<textarea rows={6} value={patchJson} onChange={(event) => setPatchJson(event.target.value)} /></label><button className="button button-teal" disabled={busy}>Actualizar borrador</button></form></Panel>
+    <Panel title="Revisión editorial" description="El dictamen fija la huella del contenido y metadatos actuales."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => reviewEditorialDraft(fieldNumber(data.get('id')), data.get('decision') as 'aprobada' | 'rechazada' | 'observaciones')) }}><label>ID versión<input name="id" type="number" min="1" required /></label><label>Dictamen<select name="decision"><option value="aprobada">Aprobada</option><option value="observaciones">Observaciones</option><option value="rechazada">Rechazada</option></select></label><button className="button button-teal" disabled={busy}>Registrar dictamen</button></form></Panel>
+    <Panel title="Publicar versión" description="Solo publica una versión con aprobación vigente y huella sin cambios posteriores."><IdForm field="ID versión" button="Publicar" busy={busy} onSubmit={(id) => run(() => publishEditorialDraft(id))} /></Panel>
+    <Panel title="Desactivar unidad" description="Impide nuevos intentos y conserva los datos históricos."><IdForm field="ID unidad" button="Desactivar unidad" busy={busy} onSubmit={(id) => run(() => deactivateEditorialUnit(id))} /></Panel>
+  </div>
+}
+
+function LegalPanel({ busy, technical, authenticated, run }: { busy: boolean; technical: boolean; authenticated: boolean; run: (action: () => Promise<unknown>) => Promise<void> }) {
+  return <div className="management-grid">
+    <Panel title="Consultar documento vigente" description="Lee el aviso de privacidad, términos o consentimiento publicado."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => getLegalDocument(data.get('tipo') as LegalDocumentType)) }}><label>Documento<select name="tipo">{documentTypes.map((type) => <option key={type}>{type}</option>)}</select></label><button className="button button-teal" disabled={busy}>Consultar documento</button></form></Panel>
+    {authenticated && <Panel title="Historial legal propio" description="Incluye eventos y estado efectivo de consentimientos de esta cuenta."><button className="button button-teal" disabled={busy} onClick={() => void run(getMyLegalEvents)}>Consultar mis eventos</button></Panel>}
+    {authenticated && <Panel title="Registrar evento legal" description="La clave UUID hace idempotente el registro. No se recopilan datos distintos a los del contrato."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => registerLegalEvent({ version_documento_id: fieldNumber(data.get('version')), tipo_evento: data.get('event') as PrivacyEventType, clave_operacion: crypto.randomUUID(), canal: 'web', finalidad_codigo: String(data.get('purpose') || '') || undefined })) }}><label>ID versión de documento<input name="version" type="number" min="1" required /></label><label>Evento<select name="event">{eventTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label>Finalidad opcional<input name="purpose" maxLength={64} placeholder="metricas_academicas" /></label><button className="button button-teal" disabled={busy}>Registrar evento</button></form></Panel>}
+    {authenticated && <Panel title="Solicitud de privacidad" description="No adjuntes identificaciones ni datos biométricos; el contrato rechaza adjuntos de identidad."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => createPrivacyRequest({ tipo: String(data.get('tipo')), verificacion_minima: String(data.get('verification') || '') || undefined })) }}><label>Tipo de solicitud<input name="tipo" required minLength={2} maxLength={32} placeholder="acceso, rectificacion, supresion…" /></label><label>Verificación mínima<textarea name="verification" maxLength={500} rows={3} /></label><button className="button button-teal" disabled={busy}>Registrar solicitud</button></form></Panel>}
+    {technical && <Panel title="Publicar documento legal" description="La publicación es inmutable; el servidor calcula su huella SHA-256."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => publishLegalDocument(data.get('tipo') as LegalDocumentType, String(data.get('texto')))) }}><label>Tipo<select name="tipo">{documentTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label>Texto íntegro<textarea name="texto" minLength={10} required rows={9} /></label><button className="button button-teal" disabled={busy}>Publicar versión</button></form></Panel>}
+  </div>
+}
+
+function Panel({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <section className="management-panel"><h2>{title}</h2><p>{description}</p>{children}</section>
+}
+
+function IdForm({ field, button, busy, onSubmit }: { field: string; button: string; busy: boolean; onSubmit: (id: number) => Promise<void> }) {
+  return <form onSubmit={(event) => { event.preventDefault(); void onSubmit(fieldNumber(new FormData(event.currentTarget).get('id'))) }}><label>{field}<input name="id" type="number" min="1" required /></label><button className="button button-outline" disabled={busy}>{button}</button></form>
+}
