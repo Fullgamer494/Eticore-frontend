@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../resources/fonts/Poppins-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../resources/fonts/Poppins-Medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("../resources/fonts/Poppins-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@theme {
+  --color-ink: #0F2D4A;
+  --color-teal: #14B8A6;
+  --color-paper: #F8F7F4;
+  --color-amber: #F4A261;
+  --color-teal-light: #70C8C2;
+  --color-pattern-on-ink: #294760;
+  --color-surface: #fff;
+  --color-muted: color-mix(in srgb, #0F2D4A 56%, #F8F7F4);
+  --color-subtle: color-mix(in srgb, #0F2D4A 38%, #F8F7F4);
+  --color-border: color-mix(in srgb, #0F2D4A 12%, #F8F7F4);
+  --color-teal-soft: color-mix(in srgb, #14B8A6 14%, #fff);
+  --color-amber-soft: color-mix(in srgb, #F4A261 18%, #fff);
+  --color-teal-strong: color-mix(in srgb, #14B8A6 67%, #0F2D4A);
+  --color-amber-strong: color-mix(in srgb, #F4A261 62%, #0F2D4A);
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Caprasimo", ui-serif, Georgia, serif;
+}
+
+@layer base {
+  :root { @apply font-sans text-ink bg-paper text-base font-normal; }
+  *, *::before, *::after { @apply box-border; }
+  body { @apply m-0 min-w-[320px] min-h-screen; }
+  button, input, textarea { @apply [font:inherit]; }
+  button { @apply [color:inherit]; }
+  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+    @apply outline-[3px_solid_var(--color-ink)] outline-offset-[3px];
+  }
+  ::selection { @apply text-ink bg-teal-light; }
+  #root { @apply min-h-screen; }
+}

@@ -1,0 +1,11 @@
+@import "../shared/ui/styles.css";
+@import "../app/styles.css";
+@import "../features/dashboard/styles.css";
+@import "../features/landing/styles.css";
+@import "../features/catalog/styles.css";
+@import "../features/learning/styles.css";
+@import "../features/progress/styles.css";
+@import "../features/profile/styles.css";
+@import "../features/auth/styles.css";
+@import "../features/management/styles.css";
+@import "./responsive.css";
