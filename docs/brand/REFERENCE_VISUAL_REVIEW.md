@@ -1,0 +1,31 @@
+# Eticore frontend visual review
+
+## Scope
+
+This review uses the five LMS repositories in `references/lms`, checked-in product screenshots, the rendered UI examples in their documentation, and the current Eticore components and styles. It records transferable interaction patterns; it does not copy another product's identity. A browser-rendered screenshot of Eticore could not be captured in this environment: local Vite binds fail with `EPERM`, and the available browser host is unavailable. The production build and lint still run locally.
+
+## Reference review
+
+| Reference | Visual patterns observed | Useful lesson for Eticore |
+|---|---|---|
+| LearnHouse | The learner dashboard uses a persistent dark left rail, a greeting and summary cards, a recent-course list, and adjacent plan/usage panels. Course pages separate the main lesson area from a compact right rail with a clear start action. Landing-page templates are section based. See [dashboard screenshot](../../references/lms/learnhouse/docs/public/img/pages/getting-started/dashboard-home.webp), [course page screenshot](../../references/lms/learnhouse/docs/public/img/pages/courses/course-page.webp), and [landing templates](../../references/lms/learnhouse/docs/public/img/pages/organizations/landing-page-templates.webp). | Keep navigation stable, make the next action obvious, and avoid turning every piece of information into a card. Public landing sections can be composed independently from learner views. |
+| Open edX | The catalog revamp describes standardized course cards, a configurable course-home banner, a faceted search column, and a course overview panel that keeps key metadata together. Its catalog is documented as responsive and themeable. See [Open edX catalog revamp](https://docs.openedx.org/en/ulmo/community/release_notes/ulmo/ulmo_catalog.html) and the [learner dashboard template](../../references/lms/openedx-platform/lms/templates/dashboard.html). | Keep search and filters adjacent to results, show concise course metadata on cards, and make the course overview scannable before a learner starts. |
+| Canvas LMS | Local module and gradebook captures show a persistent global rail, a second course-navigation column, a restrained white work area, grouped modules, and dense grade data with clear row/column boundaries. See the [module list screenshot](../../references/lms/canvas-lms/doc/images/placements/module_index_menu.png), [gradebook screenshot](../../references/lms/canvas-lms/doc/images/gradebook.png), and [course index template](../../references/lms/canvas-lms/app/views/courses/index.html.erb). | Use stronger grouping for complex learning flows and reserve dense tables for data that benefits from comparison. Keep global and course-level navigation distinct. |
+| Moodle | The local Boost course capture combines a top navigation, a collapsible course-content rail, a central lesson area, and a contextual block rail. Moodle's dashboard guidance names Course overview and Timeline as central blocks and Calendar in the block drawer. See the [Boost course screenshot](../../references/lms/moodle/public/theme/boost/pix/screenshot.png) and [Moodle Dashboard](https://docs.moodle.org/503/en/dashboard). | Put deadlines and course continuation within reach, while allowing secondary panels to move out of the main reading column. |
+| Kolibri | The learner screenshots use a strong, persistent header, a prominent Continue learning row, large activity cards with visible progress, and an Explore area with category filters and a grid/list choice. See [Home](../../references/lms/kolibri/platforms/flatpak-app/doc/Screenshot-1.png), [Library](../../references/lms/kolibri/platforms/flatpak-app/doc/Screenshot-2.png), and [lesson](../../references/lms/kolibri/platforms/flatpak-app/doc/Screenshot-3.png) screenshots; the learner guide explains the Home and Library flow at [Kolibri Learn guide](https://kolibri.readthedocs.io/en/latest/learn.html). | Make resuming learning the primary learner action, then provide a separate browsing path. Keep filters understandable and allow content to work in low-connectivity contexts. |
+
+## Eticore review and adjustments
+
+- The current product has separate public and authenticated shells, matching the need to keep account and legal flows outside the learner dashboard.
+- The desktop workspace has a persistent navigation rail, a clear page heading, a learning hero, summary metrics, and course/activity cards. Keep the hero focused on one primary action and use the catalog for exploration.
+- On narrow screens, the workspace navigation moves to the bottom. Metric cards previously retained three narrow columns; they now use two columns, with the last metric spanning the row and larger support text.
+- At tablet widths, lesson content now changes to one main column, its aside panels sit side by side, and catalog filters use two columns instead of four compressed controls.
+- Small helper labels remain intentionally secondary, but key information and control labels should not fall below a comfortable reading size. Review all 8–11 px text when a browser screenshot is available.
+- The public landing now uses the manual's horizontal logo, front-facing CapiCore, and ink-blue pattern. Its layout introduces the learning premise, a three-step explanation, public activities, and account actions.
+- Preserve the approved palette and teal-button/ink-text pairing. Use the imported manual assets; do not approximate the master artwork with CSS shapes.
+
+## Assets and follow-up
+
+Figma vectors for the inverse horizontal logo, CapiCore front/three-quarter/avatar, and two pattern arcs are in `resources/brand/`. Poppins Regular, Medium, and Bold are local WOFF2 files in `resources/fonts/`. The Figma document specifies Caprasimo Regular as a text style but does not contain a font binary; that file is still needed. The dashboard has not yet adopted CapiCore or the pattern. `public/favicon.svg` and the generic `src/assets/hero.png` are not substitutes for brand masters.
+
+Before calling the visual QA complete against the running product, capture the public landing and dashboard at mobile, tablet, and desktop widths, then inspect keyboard focus, zoom/reflow, loading, empty, error, and authenticated states in a browser.
