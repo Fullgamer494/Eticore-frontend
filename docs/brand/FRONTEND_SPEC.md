@@ -16,7 +16,7 @@ Inspeccionar la estructura y los scripts existentes antes de establecer rutas o 
 
 ## 2. Tailwind CSS v4 y tokens
 
-La configuración existente usa el plugin Vite oficial `@tailwindcss/vite`, `@import "tailwindcss"` y `@theme` en `src/index.css`. Poppins se sirve desde `resources/fonts/Poppins-{Regular,Medium,Bold}.woff2`, pesos 400/500/700. Figma identifica Caprasimo Regular en su estilo de display, pero no adjunta un binario de fuente; el archivo queda pendiente. No declarar una ruta de archivo inexistente ni tratar un subconjunto del PDF como la fuente completa.
+La configuración existente usa el plugin Vite oficial `@tailwindcss/vite`, `@import "tailwindcss"` y `@theme` en `src/index.css`. La interfaz debe expresarse con utilidades Tailwind directamente en `className`; no crear hojas CSS por componente ni reglas propias de presentación. `src/index.css` se reserva para la importación de Tailwind, fuentes, tokens y estilos base globales. Poppins se sirve desde `resources/fonts/Poppins-{Regular,Medium,Bold}.woff2`, pesos 400/500/700. Figma identifica Caprasimo Regular en su estilo de display, pero no adjunta un binario de fuente; el archivo queda pendiente. No declarar una ruta de archivo inexistente ni tratar un subconjunto del PDF como la fuente completa.
 
 ```css
 @import "tailwindcss";

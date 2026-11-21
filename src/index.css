@@ -55,3 +55,16 @@
   ::selection { @apply text-ink bg-teal-light; }
   #root { @apply min-h-screen; }
 }
+
+@layer base {
+  h1 { @apply [margin-top:0]; }
+  h2 { @apply [margin-top:0]; }
+  h3 { @apply [margin-top:0]; }
+  p { @apply [margin-top:0]; }
+  h1 { @apply [color:#0F2D4A]; }
+  h2 { @apply [color:#0F2D4A]; }
+  h3 { @apply [color:#0F2D4A]; }
+  h1 { @apply [font-size:clamp(30px,_3.1vw,_40px)] [letter-spacing:-1.4px] [line-height:1.12] [margin-bottom:10px] [font-weight:700]; }
+  h2 { @apply [font-size:23px] [letter-spacing:-.65px] [margin-bottom:9px]; }
+  h3 { @apply [font-size:17px] [letter-spacing:-.25px] [line-height:1.4]; }
+}
