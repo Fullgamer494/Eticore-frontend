@@ -5,7 +5,7 @@ import type { Course } from '../../shared/types/course'
 
 type Filters = Pick<CatalogFilters, 'tipo' | 'dificultad' | 'tema_id' | 'ruta_id' | 'avance'>
 
-export function useCatalog(enabled: boolean) {
+export function useCatalog(enabled: boolean, authenticated: boolean) {
   const [query, setQuery] = useState('')
   const [filters, setFiltersState] = useState<Filters>({})
   const [items, setItems] = useState<Course[]>([])
@@ -18,7 +18,7 @@ export function useCatalog(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
     const controller = new AbortController()
-    getCatalog({ q: query.trim() || undefined, ...filters, limit: 20 }, controller.signal)
+    getCatalog({ q: query.trim() || undefined, ...filters, limit: 20 }, { signal: controller.signal, publicRequest: !authenticated })
       .then((result) => { setItems(result.items.map(mapCatalogItem)); setCursor(result.siguiente_cursor); setError(null); setStatus('loaded') })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return
@@ -26,7 +26,7 @@ export function useCatalog(enabled: boolean) {
         setStatus('error')
       })
     return () => controller.abort()
-  }, [enabled, reload, query, filters])
+  }, [enabled, reload, query, filters, authenticated])
 
   function updateQuery(value: string) { setCursor(null); setStatus('idle'); setQuery(value) }
   function updateFilters(value: Partial<Filters>) { setCursor(null); setStatus('idle'); setFiltersState((current) => ({ ...current, ...value })) }
@@ -36,7 +36,7 @@ export function useCatalog(enabled: boolean) {
     if (!cursor || loadingMore) return
     setLoadingMore(true)
     try {
-      const result = await getCatalog({ q: query.trim() || undefined, ...filters, limit: 20, cursor })
+      const result = await getCatalog({ q: query.trim() || undefined, ...filters, limit: 20, cursor }, { publicRequest: !authenticated })
       setItems((current) => [...current, ...result.items.map(mapCatalogItem)])
       setCursor(result.siguiente_cursor)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo cargar la página siguiente.') }

@@ -18,10 +18,11 @@ export function useLearningProgress(user: AuthenticatedUser | null, refreshUser:
   const [routeError, setRouteError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!user) return
     const controller = new AbortController()
     listRoutes(controller.signal).then(setRoutes).catch(() => setRoutes([]))
     return () => controller.abort()
-  }, [])
+  }, [user])
 
   async function refresh() {
     const refreshed = await Promise.allSettled([getProgress(), getPoints(), getRank(), getBadges(), getAttemptHistory()])

@@ -25,7 +25,7 @@ export default function App() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [health, setHealth] = useState<'unknown' | 'ok' | 'error'>('unknown')
   const session = useSession(setPage)
-  const catalog = useCatalog(page === 'catalog' || page === 'home' || page === 'landing')
+  const catalog = useCatalog(page === 'catalog' || page === 'home' || page === 'landing', Boolean(session.user))
   const progress = useLearningProgress(session.user, session.refreshUser)
   const learning = useLearningSession(session.user, setPage, progress.refresh, session.openLogin)
   const profile = useProfile(session.refreshUser)

@@ -63,7 +63,7 @@ export const getGroupReport = (id: number, params: { desde: string; hasta: strin
   apiRequest(`reportes/grupos/${id}${queryString(params)}`)
 
 export const getLegalDocument = (tipo?: LegalDocumentType): Promise<LegalDocument> =>
-  apiRequest(`legal/aviso${queryString({ tipo })}`)
+  apiRequest(`legal/aviso${queryString({ tipo })}`, { credentials: 'omit' })
 export const publishLegalDocument = (tipo: LegalDocumentType, texto: string): Promise<LegalDocument> =>
   apiRequest('legal/documentos/versiones', { method: 'POST', body: { tipo, texto } })
 export const registerLegalEvent = (input: { version_documento_id: number; tipo_evento: PrivacyEventType; clave_operacion: string; canal?: string; finalidad_codigo?: string }): Promise<Record<string, unknown>> =>

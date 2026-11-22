@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Caprasimo&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -54,6 +55,56 @@
   }
   ::selection { @apply text-ink bg-teal-light; }
   #root { @apply min-h-screen; }
+}
+
+html[data-eticore-large-text="true"] { font-size: 125%; }
+
+.public-site[data-text-scale="large"] :is(p, button, a, label) {
+  font-size: 1.125em;
+}
+
+.public-site[data-contrast="high"] {
+  --color-muted: #273b4a;
+  --color-subtle: #344b5b;
+  --color-border: #647987;
+  --color-teal-strong: #07534d;
+  --color-amber-strong: #70400b;
+  --color-teal-soft: #d7f2ef;
+  --color-amber-soft: #fff0dc;
+}
+
+.public-site[data-contrast="high"] .decoration-teal-light {
+  text-decoration-color: #07534d;
+}
+
+.public-site[data-underline-links="on"] :is(a, .public-nav button, .public-footer button, .public-login, .landing-copy button:not(.button), .landing-content button) {
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em;
+}
+
+.public-site[data-motion="reduce"] *,
+.public-site[data-motion="reduce"] *::before,
+.public-site[data-motion="reduce"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-site *,
+  .public-site *::before,
+  .public-site *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.public-site[data-control-highlight="on"] :is(button, a, input, textarea, select, summary, [role="button"]) {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 @layer base {

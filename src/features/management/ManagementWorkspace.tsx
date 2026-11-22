@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   addGroupMember, changeUserRole, createEditorialDraft, createEditorialUnit, createGroup,
   createPrivacyRequest, deactivateEditorialUnit, deactivateGroup, getGroupReport,
   getLegalDocument, getMyLegalEvents, listAdminAccounts, listAudit, listGroupMembers,
   listGroups, publishEditorialDraft, publishLegalDocument, registerLegalEvent,
   removeGroupMember, reviewEditorialDraft, setAdminAccountActive, updateEditorialDraft,
-  type LegalDocumentType, type PrivacyEventType, type RoleCode,
+  type LegalDocument, type LegalDocumentType, type PrivacyEventType, type RoleCode,
 } from './api'
 
 type Tab = 'accounts' | 'groups' | 'reports' | 'editorial'
@@ -47,6 +47,9 @@ export function ManagementWorkspace({ roles: userRoles }: { roles: RoleCode[] })
 
 export function LegalWorkspace({ roles: userRoles, authenticated }: { roles: RoleCode[]; authenticated: boolean }) {
   const technical = userRoles.includes('ADMIN_TECNICO')
+  const [documents, setDocuments] = useState<LegalDocument[]>([])
+  const [documentsLoading, setDocumentsLoading] = useState(true)
+  const [documentsError, setDocumentsError] = useState<string | null>(null)
   const [result, setResult] = useState<unknown>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -55,7 +58,29 @@ export function LegalWorkspace({ roles: userRoles, authenticated }: { roles: Rol
     try { setResult(await action()) } catch (cause) { setError(cause instanceof Error ? cause.message : 'La operación no pudo completarse.') }
     finally { setBusy(false) }
   }
-  return <div className="page-content public-legal-content [max-width:1220px] [margin:0_auto] [padding:42px_clamp(22px,_5vw,_70px)_78px] max-[700px]:[padding:28px_18px_38px] mx-auto max-w-[1280px]"><section className="page-intro [&_>_p:last-child]:[color:var(--color-muted)] [&_>_p:last-child]:[margin-bottom:0] [&_>_p:last-child]:[font-size:14px] [margin:2px_0_27px] [&_h1]:[margin-bottom:9px] [&_.eyebrow]:[margin-bottom:12px] max-[700px]:[&_h1]:[font-size:31px] max-[700px]:[&_>_p:last-child]:[line-height:1.6]"><p className="eyebrow [margin:0_0_10px] [font-size:10px] [letter-spacing:1.4px] [font-weight:700] [color:var(--color-muted)] m-0 text-[11px] font-bold tracking-[.16em] text-teal-strong">TRANSPARENCIA Y CONTROL</p><h1>Legal y privacidad</h1><p>Consulta los documentos vigentes y administra tus eventos o solicitudes de privacidad.</p></section>
+  useEffect(() => {
+    let active = true
+    Promise.allSettled(documentTypes.map((type) => getLegalDocument(type))).then((results) => {
+      if (!active) return
+      const loaded = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
+      setDocuments(loaded)
+      if (loaded.length === 0) setDocumentsError('No fue posible cargar los documentos publicados. La API debe permitir la lectura de documentos vigentes sin consultar el historial personal.')
+      else if (loaded.length !== documentTypes.length) setDocumentsError('Algunos documentos no están disponibles en este momento.')
+      setDocumentsLoading(false)
+    })
+    return () => { active = false }
+  }, [])
+  const documentTitles: Record<LegalDocumentType, string> = { aviso_privacidad: 'Aviso de privacidad', terminos: 'Términos y condiciones', consentimiento: 'Consentimiento' }
+  return <div className="page-content public-legal-content [max-width:1220px] [margin:0_auto] [padding:42px_clamp(22px,_5vw,_70px)_78px] max-[700px]:[padding:28px_18px_38px] mx-auto max-w-[1280px]"><section className="page-intro [&_>_p:last-child]:[color:var(--color-muted)] [&_>_p:last-child]:[margin-bottom:0] [&_>_p:last-child]:[font-size:14px] [margin:2px_0_27px] [&_h1]:[margin-bottom:9px] [&_.eyebrow]:[margin-bottom:12px] max-[700px]:[&_h1]:[font-size:31px] max-[700px]:[&_>_p:last-child]:[line-height:1.6]"><p className="eyebrow [margin:0_0_10px] [font-size:10px] [letter-spacing:1.4px] [font-weight:700] [color:var(--color-muted)] m-0 text-[11px] font-bold tracking-[.16em] text-teal-strong">TRANSPARENCIA Y CONTROL</p><h1>Legal y privacidad</h1><p>Documentos vigentes de Eticore. Puedes leerlos directamente aquí.</p></section>
+    {documentsLoading && <p className="py-8 text-sm text-muted" role="status">Cargando documentos…</p>}
+    {documentsError && <div className="error-banner [margin:12px_0] [padding:14px_16px] [border-radius:8px] [font-size:13px] [line-height:1.6] [color:#7b3114] [background:var(--color-amber-soft)]" role="alert">{documentsError}</div>}
+    <div className="grid gap-6">
+      {documents.map((document) => <article className="rounded-2xl border border-border bg-white px-[clamp(20px,4vw,48px)] py-8" key={document.version_documento_id}>
+        <p className="mb-2 text-xs font-bold tracking-[.14em] text-teal-strong">DOCUMENTO VIGENTE · VERSIÓN {document.numero}</p>
+        <h2 className="mb-5 text-3xl font-normal text-ink">{documentTitles[document.tipo]}</h2>
+        <div className="whitespace-pre-wrap text-[15px] leading-[1.85] text-muted">{document.texto}</div>
+      </article>)}
+    </div>
     {error && <div className="error-banner [margin:12px_0] [padding:11px_13px] [border-radius:8px] [font-size:12px] [line-height:1.5] [color:#7b3114] [background:var(--color-amber-soft)]" role="alert">{error}</div>}{result !== null && <details className="operation-result [margin:12px_0_18px] [padding:12px] [border:1px_solid_var(--color-border)] [border-radius:9px] [background:var(--color-surface)] [&_summary]:[cursor:pointer] [&_summary]:[color:var(--color-ink)] [&_summary]:[font-size:11px] [&_summary]:[font-weight:700] [&_pre]:[max-height:420px] [&_pre]:[overflow:auto] [&_pre]:[white-space:pre-wrap] [&_pre]:[overflow-wrap:anywhere] [&_pre]:[color:var(--color-muted)] [&_pre]:[font-size:10px]" open><summary>Respuesta de la API</summary><pre>{show(result)}</pre></details>}
     <LegalPanel busy={busy} technical={technical} authenticated={authenticated} run={run} />
   </div>
@@ -122,7 +147,6 @@ function EditorialPanel({ busy, run }: { busy: boolean; run: (action: () => Prom
 
 function LegalPanel({ busy, technical, authenticated, run }: { busy: boolean; technical: boolean; authenticated: boolean; run: (action: () => Promise<unknown>) => Promise<void> }) {
   return <div className="management-grid [display:grid] [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:14px] [align-items:start] max-[700px]:[grid-template-columns:1fr]">
-    <Panel title="Consultar documento vigente" description="Lee el aviso de privacidad, términos o consentimiento publicado."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => getLegalDocument(data.get('tipo') as LegalDocumentType)) }}><label>Documento<select name="tipo">{documentTypes.map((type) => <option key={type}>{type}</option>)}</select></label><button className="button button-teal [min-height:42px] [border-radius:8px] [border:0] [padding:0_16px] [display:inline-flex] [gap:14px] [align-items:center] [justify-content:center] [font-size:12px] [font-weight:700] [cursor:pointer] [transition:transform_.16s_ease,_background_.16s_ease] hover:[transform:translateY(-1px)] disabled:[opacity:.58] disabled:[cursor:not-allowed] disabled:[transform:none] motion-reduce:transition-none motion-reduce:transform-none [color:#0F2D4A] [background:#14B8A6] hover:[background:var(--color-teal)]" disabled={busy}>Consultar documento</button></form></Panel>
     {authenticated && <Panel title="Historial legal propio" description="Incluye eventos y estado efectivo de consentimientos de esta cuenta."><button className="button button-teal [min-height:42px] [border-radius:8px] [border:0] [padding:0_16px] [display:inline-flex] [gap:14px] [align-items:center] [justify-content:center] [font-size:12px] [font-weight:700] [cursor:pointer] [transition:transform_.16s_ease,_background_.16s_ease] hover:[transform:translateY(-1px)] disabled:[opacity:.58] disabled:[cursor:not-allowed] disabled:[transform:none] motion-reduce:transition-none motion-reduce:transform-none [color:#0F2D4A] [background:#14B8A6] hover:[background:var(--color-teal)]" disabled={busy} onClick={() => void run(getMyLegalEvents)}>Consultar mis eventos</button></Panel>}
     {authenticated && <Panel title="Registrar evento legal" description="La clave UUID hace idempotente el registro. No se recopilan datos distintos a los del contrato."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => registerLegalEvent({ version_documento_id: fieldNumber(data.get('version')), tipo_evento: data.get('event') as PrivacyEventType, clave_operacion: crypto.randomUUID(), canal: 'web', finalidad_codigo: String(data.get('purpose') || '') || undefined })) }}><label>ID versión de documento<input name="version" type="number" min="1" required /></label><label>Evento<select name="event">{eventTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label>Finalidad opcional<input name="purpose" maxLength={64} placeholder="metricas_academicas" /></label><button className="button button-teal [min-height:42px] [border-radius:8px] [border:0] [padding:0_16px] [display:inline-flex] [gap:14px] [align-items:center] [justify-content:center] [font-size:12px] [font-weight:700] [cursor:pointer] [transition:transform_.16s_ease,_background_.16s_ease] hover:[transform:translateY(-1px)] disabled:[opacity:.58] disabled:[cursor:not-allowed] disabled:[transform:none] motion-reduce:transition-none motion-reduce:transform-none [color:#0F2D4A] [background:#14B8A6] hover:[background:var(--color-teal)]" disabled={busy}>Registrar evento</button></form></Panel>}
     {authenticated && <Panel title="Solicitud de privacidad" description="No adjuntes identificaciones ni datos biométricos; el contrato rechaza adjuntos de identidad."><form onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); void run(() => createPrivacyRequest({ tipo: String(data.get('tipo')), verificacion_minima: String(data.get('verification') || '') || undefined })) }}><label>Tipo de solicitud<input name="tipo" required minLength={2} maxLength={32} placeholder="acceso, rectificacion, supresion…" /></label><label>Verificación mínima<textarea name="verification" maxLength={500} rows={3} /></label><button className="button button-teal [min-height:42px] [border-radius:8px] [border:0] [padding:0_16px] [display:inline-flex] [gap:14px] [align-items:center] [justify-content:center] [font-size:12px] [font-weight:700] [cursor:pointer] [transition:transform_.16s_ease,_background_.16s_ease] hover:[transform:translateY(-1px)] disabled:[opacity:.58] disabled:[cursor:not-allowed] disabled:[transform:none] motion-reduce:transition-none motion-reduce:transform-none [color:#0F2D4A] [background:#14B8A6] hover:[background:var(--color-teal)]" disabled={busy}>Registrar solicitud</button></form></Panel>}

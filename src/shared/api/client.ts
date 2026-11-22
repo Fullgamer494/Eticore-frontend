@@ -18,11 +18,11 @@ const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, 
 
 export async function apiRequest<T>(
   path: string,
-  options: { method?: string; body?: unknown; signal?: AbortSignal } = {},
+  options: { method?: string; body?: unknown; signal?: AbortSignal; credentials?: RequestCredentials } = {},
 ): Promise<T> {
   const response = await fetch(`${baseUrl}/${path.replace(/^\//, '')}`, {
     method: options.method ?? 'GET',
-    credentials: 'include',
+    credentials: options.credentials ?? 'include',
     headers: {
       Accept: 'application/json',
       ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),

@@ -45,17 +45,17 @@ export type CatalogFilters = {
   limit?: number
 }
 
-export function getCatalog(filters: CatalogFilters = {}, signal?: AbortSignal): Promise<CatalogResponse> {
+export function getCatalog(filters: CatalogFilters = {}, options: { signal?: AbortSignal; publicRequest?: boolean } = {}): Promise<CatalogResponse> {
   const query = new URLSearchParams()
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== '') query.set(key, String(value))
   })
   const suffix = query.size ? `?${query.toString()}` : ''
-  return apiRequest<CatalogResponse>(`catalogo${suffix}`, { signal })
+  return apiRequest<CatalogResponse>(`catalogo${suffix}`, { signal: options.signal, credentials: options.publicRequest ? 'omit' : 'include' })
 }
 
 export function getPublicSample(unitId: number, signal?: AbortSignal): Promise<UnitDetail> {
-  return apiRequest<UnitDetail>(`catalogo/unidades/${unitId}/muestra`, { signal })
+  return apiRequest<UnitDetail>(`catalogo/unidades/${unitId}/muestra`, { signal, credentials: 'omit' })
 }
 
 export function getUnit(unitId: number, signal?: AbortSignal): Promise<UnitDetail> {
